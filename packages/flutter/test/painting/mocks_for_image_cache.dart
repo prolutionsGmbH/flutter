@@ -47,6 +47,15 @@ class TestImageProvider extends ImageProvider<int> {
   String toString() => '$runtimeType($key, $imageValue)';
 }
 
+class FailingTestImageProvider extends TestImageProvider {
+  const FailingTestImageProvider(int key, int imageValue, { ui.Image image }) : super(key, imageValue, image: image);
+
+  @override
+  ImageStreamCompleter load(int key) {
+    return OneFrameImageStreamCompleter(Future<ImageInfo>.sync(() => Future<ImageInfo>.error('loading failed!')));
+  }
+}
+
 Future<ImageInfo> extractOneFrame(ImageStream stream) {
   final Completer<ImageInfo> completer = Completer<ImageInfo>();
   void listener(ImageInfo image, bool synchronousCall) {
@@ -72,3 +81,5 @@ class TestImage implements ui.Image {
     throw UnimplementedError();
   }
 }
+
+class TestImageStreamCompleter extends ImageStreamCompleter {}
