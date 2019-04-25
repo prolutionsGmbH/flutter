@@ -22,6 +22,9 @@ import 'theme.dart';
 import 'theme_data.dart';
 import 'time.dart';
 
+// Examples can assume:
+// BuildContext context;
+
 const Duration _kDialAnimateDuration = Duration(milliseconds: 200);
 const double _kTwoPi = 2 * math.pi;
 const Duration _kVibrateCommitDelay = Duration(milliseconds: 100);
@@ -451,8 +454,10 @@ _TimePickerHeaderFormat _buildHeaderFormat(TimeOfDayFormat timeOfDayFormat, _Tim
   }
 
   // Convenience function for creating a time header format with up to two pieces.
-  _TimePickerHeaderFormat format(_TimePickerHeaderPiece piece1,
-      [ _TimePickerHeaderPiece piece2 ]) {
+  _TimePickerHeaderFormat format(
+    _TimePickerHeaderPiece piece1, [
+    _TimePickerHeaderPiece piece2,
+  ]) {
     final List<_TimePickerHeaderPiece> pieces = <_TimePickerHeaderPiece>[];
     switch (context.textDirection) {
       case TextDirection.ltr:
@@ -477,8 +482,13 @@ _TimePickerHeaderFormat _buildHeaderFormat(TimeOfDayFormat timeOfDayFormat, _Tim
   }
 
   // Convenience function for creating a time header piece with up to three fragments.
-  _TimePickerHeaderPiece piece({ int pivotIndex = -1, double bottomMargin = 0.0,
-      _TimePickerHeaderFragment fragment1, _TimePickerHeaderFragment fragment2, _TimePickerHeaderFragment fragment3 }) {
+  _TimePickerHeaderPiece piece({
+    int pivotIndex = -1,
+    double bottomMargin = 0.0,
+    _TimePickerHeaderFragment fragment1,
+    _TimePickerHeaderFragment fragment2,
+    _TimePickerHeaderFragment fragment3,
+  }) {
     final List<_TimePickerHeaderFragment> fragments = <_TimePickerHeaderFragment>[fragment1];
     if (fragment2 != null) {
       fragments.add(fragment2);
@@ -782,7 +792,7 @@ class _TimePickerHeader extends StatelessWidget {
             );
           })
           .toList(),
-      )
+      ),
     );
   }
 }
@@ -885,7 +895,7 @@ class _DialPainter extends CustomPainter {
     canvas.drawLine(centerPoint, focusedPoint, selectorPaint);
 
     final Rect focusedRect = Rect.fromCircle(
-      center: focusedPoint, radius: focusedRadius
+      center: focusedPoint, radius: focusedRadius,
     );
     canvas
       ..save()
@@ -955,10 +965,10 @@ class _DialPainter extends CustomPainter {
             textDirection: textDirection,
             onTap: label.onTap,
           ),
-          tags: Set<SemanticsTag>.from(const <SemanticsTag>[
+          tags: const <SemanticsTag>{
             // Used by tests to find this node.
             SemanticsTag('dial-label'),
-          ]),
+          },
         );
         nodes.add(node);
         labelTheta += labelThetaIncrement;
@@ -991,13 +1001,15 @@ class _Dial extends StatefulWidget {
     @required this.use24HourDials,
     @required this.onChanged,
     @required this.onHourSelected,
-  }) : assert(selectedTime != null);
+  }) : assert(selectedTime != null),
+       assert(mode != null),
+       assert(use24HourDials != null);
 
   final TimeOfDay selectedTime;
   final _TimePickerMode mode;
   final bool use24HourDials;
   final ValueChanged<TimeOfDay> onChanged;
-  final Function onHourSelected;
+  final VoidCallback onHourSelected;
 
   @override
   _DialState createState() => _DialState();
@@ -1156,14 +1168,16 @@ class _DialState extends State<_Dial> with SingleTickerProviderStateMixin {
   }
 
   void _handlePanEnd(DragEndDetails details) {
-    if (widget.mode == _TimePickerMode.hour)
-      widget.onHourSelected();
-
     assert(_dragging);
     _dragging = false;
     _position = null;
     _center = null;
     _animateTo(_getThetaForTime(widget.selectedTime));
+    if (widget.mode == _TimePickerMode.hour) {
+      if (widget.onHourSelected != null) {
+        widget.onHourSelected();
+      }
+    }
   }
 
   void _handleTapUp(TapUpDetails details) {
@@ -1173,11 +1187,13 @@ class _DialState extends State<_Dial> with SingleTickerProviderStateMixin {
     _updateThetaForPan();
     final TimeOfDay newTime = _notifyOnChangedIfNeeded();
     if (widget.mode == _TimePickerMode.hour) {
-      widget.onHourSelected();
       if (widget.use24HourDials) {
         _announceToAccessibility(context, localizations.formatDecimal(newTime.hour));
       } else {
         _announceToAccessibility(context, localizations.formatDecimal(newTime.hourOfPeriod));
+      }
+      if (widget.onHourSelected != null) {
+        widget.onHourSelected();
       }
     } else {
       _announceToAccessibility(context, localizations.formatDecimal(newTime.minute));
@@ -1404,7 +1420,7 @@ class _DialState extends State<_Dial> with SingleTickerProviderStateMixin {
           activeRing: _activeRing,
           textDirection: Directionality.of(context),
         ),
-      )
+      ),
     );
   }
 }
@@ -1421,7 +1437,7 @@ class _TimePickerDialog extends StatefulWidget {
   /// [initialTime] must not be null.
   const _TimePickerDialog({
     Key key,
-    @required this.initialTime
+    @required this.initialTime,
   }) : assert(initialTime != null),
        super(key: key);
 
@@ -1550,8 +1566,8 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
           selectedTime: _selectedTime,
           onChanged: _handleTimeChanged,
           onHourSelected: _handleHourSelected,
-        )
-      )
+        ),
+      ),
     );
 
     final Widget actions = ButtonTheme.bar(
@@ -1559,14 +1575,14 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
         children: <Widget>[
           FlatButton(
             child: Text(localizations.cancelButtonLabel),
-            onPressed: _handleCancel
+            onPressed: _handleCancel,
           ),
           FlatButton(
             child: Text(localizations.okButtonLabel),
-            onPressed: _handleOk
+            onPressed: _handleOk,
           ),
-        ]
-      )
+        ],
+      ),
     );
 
     final Dialog dialog = Dialog(
@@ -1619,8 +1635,8 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                     Expanded(
                       child: pickerAndActions,
                     ),
-                  ]
-                )
+                  ],
+                ),
               );
             case Orientation.landscape:
               return SizedBox(
@@ -1634,13 +1650,13 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
                     Flexible(
                       child: pickerAndActions,
                     ),
-                  ]
-                )
+                  ],
+                ),
               );
           }
           return null;
         }
-      )
+      ),
     );
 
     return Theme(
@@ -1664,17 +1680,57 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
 /// The returned Future resolves to the time selected by the user when the user
 /// closes the dialog. If the user cancels the dialog, null is returned.
 ///
-/// To show a dialog with [initialTime] equal to the current time:
+/// {@tool sample}
+/// Show a dialog with [initialTime] equal to the current time.
 ///
 /// ```dart
-/// showTimePicker(
+/// Future<TimeOfDay> selectedTime = showTimePicker(
 ///   initialTime: TimeOfDay.now(),
 ///   context: context,
 /// );
 /// ```
+/// {@end-tool}
 ///
-/// The `context` argument is passed to [showDialog], the documentation for
+/// The [context] argument is passed to [showDialog], the documentation for
 /// which discusses how it is used.
+///
+/// The [builder] parameter can be used to wrap the dialog widget
+/// to add inherited widgets like [Localizations.override],
+/// [Directionality], or [MediaQuery].
+///
+/// {@tool sample}
+/// Show a dialog with the text direction overridden to be [TextDirection.rtl].
+///
+/// ```dart
+/// Future<TimeOfDay> selectedTimeRTL = showTimePicker(
+///   context: context,
+///   initialTime: TimeOfDay.now(),
+///   builder: (BuildContext context, Widget child) {
+///     return Directionality(
+///       textDirection: TextDirection.rtl,
+///       child: child,
+///     );
+///   },
+/// );
+/// ```
+/// {@end-tool}
+///
+/// {@tool sample}
+/// Show a dialog with time unconditionally displayed in 24 hour format.
+///
+/// ```dart
+/// Future<TimeOfDay> selectedTime24Hour = showTimePicker(
+///   context: context,
+///   initialTime: TimeOfDay(hour: 10, minute: 47),
+///   builder: (BuildContext context, Widget child) {
+///     return MediaQuery(
+///       data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+///       child: child,
+///     );
+///   },
+/// );
+/// ```
+/// {@end-tool}
 ///
 /// See also:
 ///
@@ -1682,15 +1738,19 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
 ///    date picker.
 Future<TimeOfDay> showTimePicker({
   @required BuildContext context,
-  @required TimeOfDay initialTime
+  @required TimeOfDay initialTime,
+  TransitionBuilder builder,
 }) async {
   assert(context != null);
   assert(initialTime != null);
   assert(debugCheckHasMaterialLocalizations(context));
 
+  final Widget dialog = _TimePickerDialog(initialTime: initialTime);
   return await showDialog<TimeOfDay>(
     context: context,
-    builder: (BuildContext context) => _TimePickerDialog(initialTime: initialTime),
+    builder: (BuildContext context) {
+      return builder == null ? dialog : builder(context, dialog);
+    },
   );
 }
 
