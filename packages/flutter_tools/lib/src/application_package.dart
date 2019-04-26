@@ -28,7 +28,7 @@ import 'web/web_device.dart';
 import 'windows/application_package.dart';
 
 class ApplicationPackageFactory {
-  static ApplicationPackageFactory get instance => context[ApplicationPackageFactory];
+  static ApplicationPackageFactory get instance => context.get<ApplicationPackageFactory>();
 
   Future<ApplicationPackage> getPackageForPlatform(
     TargetPlatform platform, {
@@ -319,12 +319,16 @@ abstract class IOSApp extends ApplicationPackage {
       return null;
     }
     if (!project.exists) {
-      // If the project doesn't exist at all the existing hint to run flutter
+      // If the project doesn't exist at all the current hint to run flutter
       // create is accurate.
       return null;
     }
     if (!project.xcodeProject.existsSync()) {
       printError('Expected ios/Runner.xcodeproj but this file is missing.');
+      return null;
+    }
+    if (!project.xcodeProjectInfoFile.existsSync()) {
+      printError('Expected ios/Runner.xcodeproj/project.pbxproj but this file is missing.');
       return null;
     }
     return BuildableIOSApp(project);
