@@ -1,6 +1,8 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:async';
 import 'dart:convert';
@@ -11,11 +13,10 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-
 class TestAssetBundle extends CachingAssetBundle {
   TestAssetBundle(this._assetBundleMap);
 
-  Map<String, List<String>> _assetBundleMap;
+  final Map<String, List<String>> _assetBundleMap;
 
   Map<String, int> loadCallCount = <String, int>{};
 
@@ -116,8 +117,7 @@ void main() {
       }));
     });
 
-    test(
-        'When high-res device and high-res asset not present in bundle then  return main variant', () {
+    test('When high-res device and high-res asset not present in bundle then  return main variant', () {
       const String mainAssetPath = 'assets/normalFolder/normalFile.png';
 
       final Map<String, List<String>> assetBundleMap =
@@ -141,7 +141,7 @@ void main() {
 
       assetImage.obtainKey(ImageConfiguration(
         bundle: testAssetBundle,
-        devicePixelRatio: 3.0)
+        devicePixelRatio: 3.0),
       ).then(expectAsync1((AssetBundleImageKey bundleKey) {
         expect(bundleKey.name, mainAssetPath);
         expect(bundleKey.scale, 1.0);
@@ -174,7 +174,7 @@ void main() {
       // we have 1.0 and 3.0, asking for 1.5 should give
       assetImage.obtainKey(ImageConfiguration(
         bundle: testAssetBundle,
-        devicePixelRatio: deviceRatio)
+        devicePixelRatio: deviceRatio),
       ).then(expectAsync1((AssetBundleImageKey bundleKey) {
         expect(bundleKey.name, expectedAssetPath);
         expect(bundleKey.scale, chosenAssetRatio);

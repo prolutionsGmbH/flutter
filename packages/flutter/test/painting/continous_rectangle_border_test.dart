@@ -1,8 +1,9 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:io' show Platform;
+// @dart = 2.8
+
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,23 @@ import 'package:flutter_test/flutter_test.dart';
 import '../rendering/mock_canvas.dart';
 
 void main() {
+  test('ContinuousRectangleBorder defaults', () {
+    const ContinuousRectangleBorder border = ContinuousRectangleBorder();
+    expect(border.side, BorderSide.none);
+    expect(border.borderRadius, BorderRadius.zero);
+  });
+
+  test('ContinuousRectangleBorder copyWith, ==, hashCode', () {
+    expect(const ContinuousRectangleBorder(), const ContinuousRectangleBorder().copyWith());
+    expect(const ContinuousRectangleBorder().hashCode, const ContinuousRectangleBorder().copyWith().hashCode);
+    const BorderSide side = BorderSide(width: 10.0, color: Color(0xff123456));
+    const BorderRadius radius = BorderRadius.all(Radius.circular(16.0));
+    expect(
+      const ContinuousRectangleBorder().copyWith(side: side, borderRadius: radius),
+      const ContinuousRectangleBorder(side: side, borderRadius: radius),
+    );
+  });
+
   test('ContinuousRectangleBorder scale and lerp', () {
     final ContinuousRectangleBorder c10 = ContinuousRectangleBorder(side: const BorderSide(width: 10.0), borderRadius: BorderRadius.circular(100.0));
     final ContinuousRectangleBorder c15 = ContinuousRectangleBorder(side: const BorderSide(width: 15.0), borderRadius: BorderRadius.circular(150.0));
@@ -23,7 +41,7 @@ void main() {
   });
 
   test('ContinuousRectangleBorder BorderRadius.zero', () {
-    final Rect rect1 = Rect.fromLTRB(10.0, 20.0, 30.0, 40.0);
+    const Rect rect1 = Rect.fromLTRB(10.0, 20.0, 30.0, 40.0);
     final Matcher looksLikeRect1 = isPathThat(
       includes: const <Offset>[ Offset(10.0, 20.0), Offset(20.0, 30.0) ],
       excludes: const <Offset>[ Offset(9.0, 19.0), Offset(31.0, 41.0) ],
@@ -46,7 +64,7 @@ void main() {
   });
 
   test('ContinuousRectangleBorder non-zero BorderRadius', () {
-    final Rect rect = Rect.fromLTRB(10.0, 20.0, 30.0, 40.0);
+    const Rect rect = Rect.fromLTRB(10.0, 20.0, 30.0, 40.0);
     final Matcher looksLikeRect = isPathThat(
       includes: const <Offset>[ Offset(15.0, 25.0), Offset(20.0, 30.0) ],
       excludes: const <Offset>[ Offset(10.0, 20.0), Offset(30.0, 40.0) ],
@@ -73,18 +91,19 @@ void main() {
     await expectLater(
       find.byType(RepaintBoundary),
       matchesGoldenFile('continuous_rectangle_border.golden_test_even_radii.png'),
-      skip: !Platform.isLinux,
     );
   });
 
   testWidgets('Golden test varying radii', (WidgetTester tester) async {
     await tester.pumpWidget(RepaintBoundary(
       child: Material(
-        color: Colors.greenAccent[400],
+        color: Colors.green[100],
         shape: const ContinuousRectangleBorder(
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(28.0),
-            bottomRight: Radius.circular(14.0),
+            topLeft: Radius.elliptical(100.0, 200.0),
+            topRight: Radius.circular(350.0),
+            bottomLeft: Radius.elliptical(2000.0, 100.0),
+            bottomRight: Radius.circular(700.0),
           ),
         ),
       ),
@@ -95,7 +114,86 @@ void main() {
     await expectLater(
       find.byType(RepaintBoundary),
       matchesGoldenFile('continuous_rectangle_border.golden_test_varying_radii.png'),
-      skip: !Platform.isLinux,
+    );
+  });
+
+  testWidgets('Golden test topLeft radii', (WidgetTester tester) async {
+    await tester.pumpWidget(RepaintBoundary(
+      child: Material(
+        color: Colors.green[200],
+        shape: const ContinuousRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.elliptical(100.0, 200.0),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(RepaintBoundary),
+      matchesGoldenFile('continuous_rectangle_border.golden_test_topLeft_radii.png'),
+    );
+  });
+
+  testWidgets('Golden test topRight radii', (WidgetTester tester) async {
+    await tester.pumpWidget(RepaintBoundary(
+      child: Material(
+        color: Colors.green[300],
+        shape: const ContinuousRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(350.0),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(RepaintBoundary),
+      matchesGoldenFile('continuous_rectangle_border.golden_test_topRight_radii.png'),
+    );
+  });
+
+  testWidgets('Golden test bottomLeft radii', (WidgetTester tester) async {
+    await tester.pumpWidget(RepaintBoundary(
+      child: Material(
+        color: Colors.green[400],
+        shape: const ContinuousRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.elliptical(2000.0, 100.0),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(RepaintBoundary),
+      matchesGoldenFile('continuous_rectangle_border.golden_test_bottomLeft_radii.png'),
+    );
+  });
+
+  testWidgets('Golden test bottomRight radii', (WidgetTester tester) async {
+    await tester.pumpWidget(RepaintBoundary(
+      child: Material(
+        color: Colors.green[500],
+        shape: const ContinuousRectangleBorder(
+          borderRadius: BorderRadius.only(
+            bottomRight: Radius.circular(700.0),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(RepaintBoundary),
+      matchesGoldenFile('continuous_rectangle_border.golden_test_bottomRight_radii.png'),
     );
   });
 
@@ -114,7 +212,6 @@ void main() {
     await expectLater(
       find.byType(RepaintBoundary),
       matchesGoldenFile('continuous_rectangle_border.golden_test_large_radii.png'),
-      skip: !Platform.isLinux,
     );
   });
 

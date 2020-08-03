@@ -1,12 +1,13 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:io';
+// @dart = 2.8
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../rendering/mock_canvas.dart';
 import 'semantics_tester.dart';
@@ -27,7 +28,7 @@ void main() {
         children: <TestSemantics>[
           TestSemantics.rootChild(
             id: 1,
-            rect: Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
+            rect: const Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
             label: 'a',
             textDirection: TextDirection.rtl,
           ),
@@ -61,7 +62,7 @@ void main() {
         children: <TestSemantics>[
           TestSemantics.rootChild(
             id: 1,
-            rect: Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
+            rect: const Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
             label: 'a',
             textDirection: TextDirection.rtl,
           ),
@@ -95,7 +96,7 @@ void main() {
         children: <TestSemantics>[
           TestSemantics.rootChild(
             id: 1,
-            rect: Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
+            rect: const Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
             label: 'a',
             textDirection: TextDirection.rtl,
           ),
@@ -117,7 +118,7 @@ void main() {
         children: <TestSemantics>[
           TestSemantics.rootChild(
             id: 1,
-            rect: Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
+            rect: const Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
             label: 'a',
             textDirection: TextDirection.rtl,
           ),
@@ -139,7 +140,7 @@ void main() {
         children: <TestSemantics>[
           TestSemantics.rootChild(
             id: 1,
-            rect: Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
+            rect: const Rect.fromLTRB(0.0, 0.0, 800.0, 600.0),
             label: 'a',
             textDirection: TextDirection.rtl,
           ),
@@ -175,12 +176,11 @@ void main() {
             ),
           ),
         ),
-      )
+      ),
     );
     await expectLater(
       find.byType(RepaintBoundary).first,
-      matchesGoldenFile('opacity_test.offset.1.png'),
-      skip: !Platform.isLinux,
+      matchesGoldenFile('opacity_test.offset.png'),
     );
   });
 
@@ -191,6 +191,7 @@ void main() {
     final Element element = find.byType(RepaintBoundary).first.evaluate().single;
     // The following line will send the layer to engine and cause crash if an
     // empty opacity layer is sent.
-    await element.renderObject.layer.toImage(Rect.fromLTRB(0.0, 0.0, 1.0, 1.0));
-  });
+    final OffsetLayer offsetLayer = element.renderObject.debugLayer as OffsetLayer;
+    await offsetLayer.toImage(const Rect.fromLTRB(0.0, 0.0, 1.0, 1.0));
+  }, skip: isBrowser); // https://github.com/flutter/flutter/issues/42767
 }

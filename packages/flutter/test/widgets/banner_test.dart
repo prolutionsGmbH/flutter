@@ -1,6 +1,8 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:math' as math;
 
@@ -259,8 +261,8 @@ void main() {
       ..save()
       ..translate(x: 800.0, y: 0.0)
       ..rotate(angle: math.pi / 4.0)
-      ..rect(rect: Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0x7f000000), hasMaskFilter: true)
-      ..rect(rect: Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0xa0b71c1c), hasMaskFilter: false)
+      ..rect(rect: const Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0x7f000000), hasMaskFilter: true)
+      ..rect(rect: const Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0xa0b71c1c), hasMaskFilter: false)
       ..paragraph(offset: const Offset(-40.0, 29.0))
       ..restore(),
     );
@@ -274,8 +276,8 @@ void main() {
       ..save()
       ..translate(x: 800.0, y: 0.0)
       ..rotate(angle: math.pi / 4.0)
-      ..rect(rect: Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0x7f000000), hasMaskFilter: true)
-      ..rect(rect: Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0xa0b71c1c), hasMaskFilter: false)
+      ..rect(rect: const Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0x7f000000), hasMaskFilter: true)
+      ..rect(rect: const Rect.fromLTRB(-40.0, 28.0, 40.0, 40.0), color: const Color(0xa0b71c1c), hasMaskFilter: false)
       ..paragraph(offset: const Offset(-40.0, 29.0))
       ..restore(),
     );

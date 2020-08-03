@@ -97,13 +97,17 @@ code {
   padding-right: 0;
 }
 
+.markdown.desc {
+  max-width: inherit;
+}
+
 #search-box {
   color: #555;
   background-color: #fff;
   background-image: none;
   border: 1px solid #ccc;
   border-radius: 2px;
-  padding: 4px 6px;
+  padding: 14px 6px;
   font-size: 15px;
 }
 

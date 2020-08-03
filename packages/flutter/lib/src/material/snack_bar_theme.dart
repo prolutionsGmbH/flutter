@@ -1,6 +1,8 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:ui' show lerpDouble;
 
@@ -46,7 +48,8 @@ enum SnackBarBehavior {
 ///
 ///  * [ThemeData], which describes the overall theme information for the
 ///    application.
-class SnackBarThemeData extends Diagnosticable {
+@immutable
+class SnackBarThemeData with Diagnosticable {
 
   /// Creates a theme that can be used for [ThemeData.snackBarTheme].
   ///
@@ -55,6 +58,7 @@ class SnackBarThemeData extends Diagnosticable {
     this.backgroundColor,
     this.actionTextColor,
     this.disabledActionTextColor,
+    this.contentTextStyle,
     this.elevation,
     this.shape,
     this.behavior,
@@ -67,7 +71,8 @@ class SnackBarThemeData extends Diagnosticable {
 
   /// Default value for [SnackBarAction.textColor].
   ///
-  /// If null, [SnackBarAction] defaults to [ThemeData.colorScheme.secondaryColor].
+  /// If null, [SnackBarAction] defaults to [ColorScheme.secondary] of
+  /// [ThemeData.colorScheme] .
   final Color actionTextColor;
 
   /// Default value for [SnackBarAction.disabledTextColor].
@@ -76,6 +81,11 @@ class SnackBarThemeData extends Diagnosticable {
   /// opacity set to 0.30 if the [Theme]'s brightness is [Brightness.dark], 0.38
   /// otherwise.
   final Color disabledActionTextColor;
+
+  /// Used to configure the [DefaultTextStyle] for the [SnackBar.content] widget.
+  ///
+  /// If null, [SnackBar] defines its default.
+  final TextStyle contentTextStyle;
 
   /// Default value for [SnackBar.elevation].
   ///
@@ -102,6 +112,7 @@ class SnackBarThemeData extends Diagnosticable {
     Color backgroundColor,
     Color actionTextColor,
     Color disabledActionTextColor,
+    TextStyle contentTextStyle,
     double elevation,
     ShapeBorder shape,
     SnackBarBehavior behavior,
@@ -110,6 +121,7 @@ class SnackBarThemeData extends Diagnosticable {
       backgroundColor: backgroundColor ?? this.backgroundColor,
       actionTextColor: actionTextColor ?? this.actionTextColor,
       disabledActionTextColor: disabledActionTextColor ?? this.disabledActionTextColor,
+      contentTextStyle: contentTextStyle ?? this.contentTextStyle,
       elevation: elevation ?? this.elevation,
       shape: shape ?? this.shape,
       behavior: behavior ?? this.behavior,
@@ -127,6 +139,7 @@ class SnackBarThemeData extends Diagnosticable {
       backgroundColor: Color.lerp(a?.backgroundColor, b?.backgroundColor, t),
       actionTextColor: Color.lerp(a?.actionTextColor, b?.actionTextColor, t),
       disabledActionTextColor: Color.lerp(a?.disabledActionTextColor, b?.disabledActionTextColor, t),
+      contentTextStyle: TextStyle.lerp(a?.contentTextStyle, b?.contentTextStyle, t),
       elevation: lerpDouble(a?.elevation, b?.elevation, t),
       shape: ShapeBorder.lerp(a?.shape, b?.shape, t),
       behavior: t < 0.5 ? a.behavior : b.behavior,
@@ -139,6 +152,7 @@ class SnackBarThemeData extends Diagnosticable {
       backgroundColor,
       actionTextColor,
       disabledActionTextColor,
+      contentTextStyle,
       elevation,
       shape,
       behavior,
@@ -146,27 +160,29 @@ class SnackBarThemeData extends Diagnosticable {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (identical(this, other))
       return true;
     if (other.runtimeType != runtimeType)
       return false;
-    final SnackBarThemeData typedOther = other;
-    return typedOther.backgroundColor == backgroundColor
-        && typedOther.actionTextColor == actionTextColor
-        && typedOther.disabledActionTextColor == disabledActionTextColor
-        && typedOther.elevation == elevation
-        && typedOther.shape == shape
-        && typedOther.behavior == behavior;
+    return other is SnackBarThemeData
+        && other.backgroundColor == backgroundColor
+        && other.actionTextColor == actionTextColor
+        && other.disabledActionTextColor == disabledActionTextColor
+        && other.contentTextStyle == contentTextStyle
+        && other.elevation == elevation
+        && other.shape == shape
+        && other.behavior == behavior;
   }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<Color>('backgroundColor', backgroundColor, defaultValue: null));
-    properties.add(DiagnosticsProperty<Color>('actionTextColor', actionTextColor, defaultValue: null));
-    properties.add(DiagnosticsProperty<Color>('disabledActionTextColor', disabledActionTextColor, defaultValue: null));
-    properties.add(DiagnosticsProperty<double>('elevation', elevation, defaultValue: null));
+    properties.add(ColorProperty('backgroundColor', backgroundColor, defaultValue: null));
+    properties.add(ColorProperty('actionTextColor', actionTextColor, defaultValue: null));
+    properties.add(ColorProperty('disabledActionTextColor', disabledActionTextColor, defaultValue: null));
+    properties.add(DiagnosticsProperty<TextStyle>('contentTextStyle', contentTextStyle, defaultValue: null));
+    properties.add(DoubleProperty('elevation', elevation, defaultValue: null));
     properties.add(DiagnosticsProperty<ShapeBorder>('shape', shape, defaultValue: null));
     properties.add(DiagnosticsProperty<SnackBarBehavior>('behavior', behavior, defaultValue: null));
   }

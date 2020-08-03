@@ -1,6 +1,8 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:collection';
 import 'dart:math' as math;
@@ -66,7 +68,7 @@ void main() {
   // │ B │
   // └───┘
   testTraversal('Semantics traverses vertically top-to-bottom', (TraversalTester tester) async {
-    for (TextDirection textDirection in TextDirection.values) {
+    for (final TextDirection textDirection in TextDirection.values) {
       await tester.test(
         textDirection: textDirection,
         children: <String, Rect>{
@@ -152,11 +154,11 @@ void main() {
   //   ┌─────────────────┘
   //   V
   // ┌───┐ ┌─────────┐ ┌───┐
-  // │ E │ │         │>│ H │
-  // └───┘ │    G    │ └───┘
-  //   V   │         │   V
+  // │ E │>│         │>│ G │
+  // └───┘ │    F    │ └───┘
+  //   ┌───|─────────|───┘
   // ┌───┐ │         │ ┌───┐
-  // │ F │>│         │ │ I │
+  // │ H │─|─────────|>│ I │
   // └───┘ └─────────┘ └───┘
   //   ┌─────────────────┘
   //   V
@@ -171,11 +173,11 @@ void main() {
   //   └─────────────────┐
   //                     V
   // ┌───┐ ┌─────────┐ ┌───┐
-  // │ E │<│         │ │ H │
-  // └───┘ │    G    │ └───┘
-  //   V   │         │   V
+  // │ E │<│         │<│ G │
+  // └───┘ │    F    │ └───┘
+  //    └──|─────────|────┐
   // ┌───┐ │         │ ┌───┐
-  // │ F │ │         │<│ I │
+  // │ H │<|─────────|─│ I │
   // └───┘ └─────────┘ └───┘
   //   └─────────────────┐
   //                     V
@@ -189,9 +191,9 @@ void main() {
       'C': const Offset(40.0, 0.0) & tenByTen,
       'D': const Offset(60.0, 0.0) & tenByTen,
       'E': const Offset(0.0, 20.0) & tenByTen,
-      'F': const Offset(0.0, 40.0) & tenByTen,
-      'G': const Offset(20.0, 20.0) & (tenByTen * 2.0),
-      'H': const Offset(60.0, 20.0) & tenByTen,
+      'F': const Offset(20.0, 20.0) & (tenByTen * 2.0),
+      'G': const Offset(60.0, 20.0) & tenByTen,
+      'H': const Offset(0.0, 40.0) & tenByTen,
       'I': const Offset(60.0, 40.0) & tenByTen,
       'J': const Offset(0.0, 60.0) & tenByTen,
       'K': const Offset(20.0, 60.0) & tenByTen,
@@ -208,7 +210,7 @@ void main() {
     await tester.test(
       textDirection: TextDirection.rtl,
       children: children,
-      expectedTraversal: 'D C B A H I G E F M L K J',
+      expectedTraversal: 'D C B A G F E I H M L K J',
     );
   });
 
@@ -321,7 +323,7 @@ class TraversalTester {
                 ),
               ),
             ),
-        )
+        ),
     );
 
     expect(semantics, hasSemantics(

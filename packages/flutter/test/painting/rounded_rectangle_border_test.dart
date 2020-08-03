@@ -1,6 +1,8 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,23 @@ import '../rendering/mock_canvas.dart';
 import 'common_matchers.dart';
 
 void main() {
+  test('RoundedRectangleBorder defaults', () {
+    const RoundedRectangleBorder border = RoundedRectangleBorder();
+    expect(border.side, BorderSide.none);
+    expect(border.borderRadius, BorderRadius.zero);
+  });
+
+  test('RoundedRectangleBorder copyWith, ==, hashCode', () {
+    expect(const RoundedRectangleBorder(), const RoundedRectangleBorder().copyWith());
+    expect(const RoundedRectangleBorder().hashCode, const RoundedRectangleBorder().copyWith().hashCode);
+    const BorderSide side = BorderSide(width: 10.0, color: Color(0xff123456));
+    const BorderRadius radius = BorderRadius.all(Radius.circular(16.0));
+    expect(
+      const RoundedRectangleBorder().copyWith(side: side, borderRadius: radius),
+      const RoundedRectangleBorder(side: side, borderRadius: radius),
+    );
+  });
+
   test('RoundedRectangleBorder', () {
     final RoundedRectangleBorder c10 = RoundedRectangleBorder(side: const BorderSide(width: 10.0), borderRadius: BorderRadius.circular(100.0));
     final RoundedRectangleBorder c15 = RoundedRectangleBorder(side: const BorderSide(width: 15.0), borderRadius: BorderRadius.circular(150.0));
@@ -24,7 +43,7 @@ void main() {
     final RoundedRectangleBorder c2 = RoundedRectangleBorder(side: const BorderSide(width: 1.0), borderRadius: BorderRadius.circular(2.0));
     expect(c2.getInnerPath(Rect.fromCircle(center: Offset.zero, radius: 2.0)), isUnitCircle);
     expect(c1.getOuterPath(Rect.fromCircle(center: Offset.zero, radius: 1.0)), isUnitCircle);
-    final Rect rect = Rect.fromLTRB(10.0, 20.0, 80.0, 190.0);
+    const Rect rect = Rect.fromLTRB(10.0, 20.0, 80.0, 190.0);
     expect(
       (Canvas canvas) => c10.paint(canvas, rect),
       paints
@@ -45,7 +64,7 @@ void main() {
   test('RoundedRectangleBorder and CircleBorder', () {
     final RoundedRectangleBorder r = RoundedRectangleBorder(side: BorderSide.none, borderRadius: BorderRadius.circular(10.0));
     const CircleBorder c = CircleBorder(side: BorderSide.none);
-    final Rect rect = Rect.fromLTWH(0.0, 0.0, 100.0, 20.0); // center is x=40..60 y=10
+    const Rect rect = Rect.fromLTWH(0.0, 0.0, 100.0, 20.0); // center is x=40..60 y=10
     final Matcher looksLikeR = isPathThat(
       includes: const <Offset>[ Offset(30.0, 10.0), Offset(50.0, 10.0), ],
       excludes: const <Offset>[ Offset(1.0, 1.0), Offset(99.0, 19.0), ],

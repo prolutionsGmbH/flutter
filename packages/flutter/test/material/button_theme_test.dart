@@ -1,8 +1,12 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -50,7 +54,7 @@ void main() {
             final ButtonThemeData theme = ButtonTheme.of(context);
             textTheme = theme.textTheme;
             constraints = theme.constraints;
-            padding = theme.padding;
+            padding = theme.padding as EdgeInsets;
             shape = theme.shape;
             layoutBehavior = theme.layoutBehavior;
             colorScheme = theme.colorScheme;
@@ -141,7 +145,7 @@ void main() {
             final ButtonThemeData theme = ButtonTheme.of(context);
             textTheme = theme.textTheme;
             constraints = theme.constraints;
-            padding = theme.padding;
+            padding = theme.padding as EdgeInsets;
             shape = theme.shape;
             return Container(
               alignment: Alignment.topLeft,
@@ -193,7 +197,7 @@ void main() {
               final ButtonThemeData theme = ButtonTheme.of(context);
               textTheme = theme.textTheme;
               constraints = theme.constraints;
-              padding = theme.padding;
+              padding = theme.padding as EdgeInsets;
               shape = theme.shape;
               return Container(
                 alignment: Alignment.topLeft,
@@ -312,7 +316,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(menu, findsNothing);
 
-    // Same test as above execpt RTL
+    // Same test as above except RTL
     await tester.pumpWidget(
       buildFrame(
         alignedDropdown: true,
@@ -325,4 +329,79 @@ void main() {
     expect(fooText, findsNWidgets(2));
     expect(tester.getRect(fooText.at(0)), tester.getRect(fooText.at(1)));
   });
+
+  testWidgets('button theme with stateful color changes color in states', (WidgetTester tester) async {
+    final FocusNode focusNode = FocusNode();
+
+    const Color pressedColor = Color(0x00000001);
+    const Color hoverColor = Color(0x00000002);
+    const Color focusedColor = Color(0x00000003);
+    const Color defaultColor = Color(0x00000004);
+
+    Color getTextColor(Set<MaterialState> states) {
+      if (states.contains(MaterialState.pressed)) {
+        return pressedColor;
+      }
+      if (states.contains(MaterialState.hovered)) {
+        return hoverColor;
+      }
+      if (states.contains(MaterialState.focused)) {
+        return focusedColor;
+      }
+      return defaultColor;
+    }
+
+    const ColorScheme colorScheme = ColorScheme.light();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ButtonTheme(
+              colorScheme: colorScheme.copyWith(
+                primary: MaterialStateColor.resolveWith(getTextColor),
+              ),
+              textTheme: ButtonTextTheme.primary,
+              child: FlatButton(
+                child: const Text('FlatButton'),
+                onPressed: () {},
+                focusNode: focusNode,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Color textColor() {
+      return tester.renderObject<RenderParagraph>(find.text('FlatButton')).text.style.color;
+    }
+
+    // Default, not disabled.
+    expect(textColor(), equals(defaultColor));
+
+    // Focused.
+    focusNode.requestFocus();
+    await tester.pumpAndSettle();
+    expect(textColor(), focusedColor);
+
+    // Hovered.
+    final Offset center = tester.getCenter(find.byType(FlatButton));
+    final TestGesture gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.addPointer(location: Offset.zero);
+    addTearDown(gesture.removePointer);
+    await gesture.moveTo(center);
+    await tester.pumpAndSettle();
+    expect(textColor(), hoverColor);
+
+    // Highlighted (pressed).
+    await gesture.down(center);
+    await tester.pump(); // Start the splash and highlight animations.
+    await tester.pump(const Duration(milliseconds: 800)); // Wait for splash and highlight to be well under way.
+    expect(textColor(), pressedColor);
+  },
+    semanticsEnabled: true,
+  );
 }

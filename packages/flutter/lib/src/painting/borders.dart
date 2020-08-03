@@ -1,6 +1,8 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:math' as math;
 import 'dart:ui' as ui show lerpDouble;
@@ -26,7 +28,10 @@ enum BorderStyle {
 /// A [Border] consists of four [BorderSide] objects: [Border.top],
 /// [Border.left], [Border.right], and [Border.bottom].
 ///
-/// {@tool sample}
+/// Note that setting [BorderSide.width] to 0.0 will result in hairline
+/// rendering. A more involved explanation is present in [BorderSide.width].
+///
+/// {@tool snippet}
 ///
 /// This sample shows how [BorderSide] objects can be used in a [Container], via
 /// a [BoxDecoration] and a [Border], to decorate some [Text]. In this example,
@@ -76,7 +81,7 @@ class BorderSide {
   ///
   /// If one of the sides is zero-width with [BorderStyle.none], then the other
   /// side is return as-is. If both of the sides are zero-width with
-  /// [BorderStyle.none], then [BorderSide.zero] is returned.
+  /// [BorderStyle.none], then [BorderSide.none] is returned.
   ///
   /// The arguments must not be null.
   static BorderSide merge(BorderSide a, BorderSide b) {
@@ -103,9 +108,15 @@ class BorderSide {
   /// The color of this side of the border.
   final Color color;
 
-  /// The width of this side of the border, in logical pixels. A
-  /// zero-width border is a hairline border. To omit the border
-  /// entirely, set the [style] to [BorderStyle.none].
+  /// The width of this side of the border, in logical pixels.
+  ///
+  /// Setting width to 0.0 will result in a hairline border. This means that
+  /// the border will have the width of one physical pixel. Also, hairline
+  /// rendering takes shortcuts when the path overlaps a pixel more than once.
+  /// This means that it will render faster than otherwise, but it might
+  /// double-hit pixels, giving it a slightly darker/lighter result.
+  ///
+  /// To omit the border entirely, set the [style] to [BorderStyle.none].
   final double width;
 
   /// The style of this side of the border.
@@ -143,7 +154,7 @@ class BorderSide {
   ///
   /// Since a zero width is normally painted as a hairline width rather than no
   /// border at all, the zero factor is special-cased to instead change the
-  /// style no [BorderStyle.none].
+  /// style to [BorderStyle.none].
   ///
   /// Values for `t` are usually obtained from an [Animation<double>], such as
   /// an [AnimationController].
@@ -243,22 +254,22 @@ class BorderSide {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (identical(this, other))
       return true;
-    if (runtimeType != other.runtimeType)
+    if (other.runtimeType != runtimeType)
       return false;
-    final BorderSide typedOther = other;
-    return color == typedOther.color &&
-           width == typedOther.width &&
-           style == typedOther.style;
+    return other is BorderSide
+        && other.color == color
+        && other.width == width
+        && other.style == style;
   }
 
   @override
   int get hashCode => hashValues(color, width, style);
 
   @override
-  String toString() => '$runtimeType($color, ${width.toStringAsFixed(1)}, $style)';
+  String toString() => '${objectRuntimeType(this, 'BorderSide')}($color, ${width.toStringAsFixed(1)}, $style)';
 }
 
 /// Base class for shape outlines.
@@ -479,8 +490,29 @@ abstract class ShapeBorder {
 
   @override
   String toString() {
-    return '$runtimeType()';
+    return '${objectRuntimeType(this, 'ShapeBorder')}()';
   }
+}
+
+/// A ShapeBorder that draws an outline with the width and color specified
+/// by [side].
+@immutable
+abstract class OutlinedBorder extends ShapeBorder {
+  /// Abstract const constructor. This constructor enables subclasses to provide
+  /// const constructors so that they can be used in const expressions.
+  ///
+  /// The value of [side] must not be null.
+  const OutlinedBorder({ this.side = BorderSide.none }) : assert(side != null);
+
+  /// The border outline's color and weight.
+  ///
+  /// If [side] is [BorderSide.none], which is the default, an outline is not drawn.
+  /// Otherwise the outline is centered over the shape's boundary.
+  final BorderSide side;
+
+  /// Returns a copy of this OutlinedBorder that draws its outline with the
+  /// specified [side], if [side] is non-null.
+  OutlinedBorder copyWith({ BorderSide side });
 }
 
 /// Represents the addition of two otherwise-incompatible borders.
@@ -519,22 +551,18 @@ class _CompoundBorder extends ShapeBorder {
       final ShapeBorder merged = ours.add(other, reversed: reversed)
                              ?? other.add(ours, reversed: !reversed);
       if (merged != null) {
-        final List<ShapeBorder> result = <ShapeBorder>[];
-        result.addAll(borders);
+        final List<ShapeBorder> result = <ShapeBorder>[...borders];
         result[reversed ? result.length - 1 : 0] = merged;
         return _CompoundBorder(result);
       }
     }
     // We can't, so fall back to just adding the new border to the list.
-    final List<ShapeBorder> mergedBorders = <ShapeBorder>[];
-    if (reversed)
-      mergedBorders.addAll(borders);
-    if (other is _CompoundBorder)
-      mergedBorders.addAll(other.borders);
-    else
-      mergedBorders.add(other);
-    if (!reversed)
-      mergedBorders.addAll(borders);
+    final List<ShapeBorder> mergedBorders = <ShapeBorder>[
+      if (reversed) ...borders,
+      if (other is _CompoundBorder) ...other.borders
+      else other,
+      if (!reversed) ...borders,
+    ];
     return _CompoundBorder(mergedBorders);
   }
 
@@ -598,28 +626,20 @@ class _CompoundBorder extends ShapeBorder {
 
   @override
   void paint(Canvas canvas, Rect rect, { TextDirection textDirection }) {
-    for (ShapeBorder border in borders) {
+    for (final ShapeBorder border in borders) {
       border.paint(canvas, rect, textDirection: textDirection);
       rect = border.dimensions.resolve(textDirection).deflateRect(rect);
     }
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (identical(this, other))
       return true;
-    if (runtimeType != other.runtimeType)
+    if (other.runtimeType != runtimeType)
       return false;
-    final _CompoundBorder typedOther = other;
-    if (borders == typedOther.borders)
-      return true;
-    if (borders.length != typedOther.borders.length)
-      return false;
-    for (int index = 0; index < borders.length; index += 1) {
-      if (borders[index] != typedOther.borders[index])
-        return false;
-    }
-    return true;
+    return other is _CompoundBorder
+        && listEquals<ShapeBorder>(other.borders, borders);
   }
 
   @override

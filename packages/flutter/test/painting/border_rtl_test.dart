@@ -1,11 +1,15 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
+import 'package:flutter/foundation.dart' show DiagnosticLevel, FlutterError;
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/mock_canvas.dart';
+import '../rendering/rendering_tester.dart';
 
 class SillyBorder extends BoxBorder {
   @override
@@ -115,12 +119,45 @@ void main() {
     expect(() => BoxBorder.lerp(SillyBorder(), const Border(), 2.0), throwsFlutterError);
   });
 
+  test('BoxBorder.lerp throws correct FlutterError message', () {
+    FlutterError error;
+    try {
+      BoxBorder.lerp(SillyBorder(), const Border(), 2.0);
+    } on FlutterError catch (e) {
+      error = e;
+    }
+    expect(error, isNotNull);
+    expect(error.diagnostics.length, 3);
+    expect(error.diagnostics[2].level, DiagnosticLevel.hint);
+    expect(
+      error.diagnostics[2].toStringDeep(),
+      equalsIgnoringHashCodes(
+        'For a more general interpolation method, consider using\n'
+        'ShapeBorder.lerp instead.\n',
+      ),
+    );
+    expect(error.toStringDeep(), equalsIgnoringHashCodes(
+      'FlutterError\n'
+      '   BoxBorder.lerp can only interpolate Border and BorderDirectional\n'
+      '   classes.\n'
+      '   BoxBorder.lerp() was called with two objects of type SillyBorder\n'
+      '   and Border:\n'
+      '     SillyBorder()\n'
+      '     Border.all(BorderSide(Color(0xff000000), 0.0,\n'
+      '   BorderStyle.none))\n'
+      '   However, only Border and BorderDirectional classes are supported\n'
+      '   by this method.\n'
+      '   For a more general interpolation method, consider using\n'
+      '   ShapeBorder.lerp instead.\n'
+    ));
+  });
+
   test('BoxBorder.getInnerPath / BoxBorder.getOuterPath', () {
     // for Border, BorderDirectional
     const Border border = Border(top: BorderSide(width: 10.0), right: BorderSide(width: 20.0));
     const BorderDirectional borderDirectional = BorderDirectional(top: BorderSide(width: 10.0), end: BorderSide(width: 20.0));
     expect(
-      border.getOuterPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
+      border.getOuterPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
       isPathThat(
         includes: <Offset>[
           const Offset(50.0, 60.0),
@@ -146,7 +183,7 @@ void main() {
       ),
     );
     expect(
-      border.getInnerPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
+      border.getInnerPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
       // inner path is a rect from 50.0,70.0 to 90.0,190.0
       isPathThat(
         includes: <Offset>[
@@ -184,7 +221,7 @@ void main() {
       ),
     );
     expect(
-      borderDirectional.getOuterPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
+      borderDirectional.getOuterPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
       isPathThat(
         includes: <Offset>[
           const Offset(50.0, 60.0),
@@ -210,7 +247,7 @@ void main() {
       ),
     );
     expect(
-      borderDirectional.getInnerPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
+      borderDirectional.getInnerPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.rtl),
       // inner path is a rect from 70.0,70.0 to 110.0,190.0
       isPathThat(
         includes: <Offset>[
@@ -251,7 +288,7 @@ void main() {
       ),
     );
     expect(
-      borderDirectional.getOuterPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.ltr),
+      borderDirectional.getOuterPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.ltr),
       isPathThat(
         includes: <Offset>[
           const Offset(50.0, 60.0),
@@ -277,7 +314,7 @@ void main() {
       ),
     );
     expect(
-      borderDirectional.getInnerPath(Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.ltr),
+      borderDirectional.getInnerPath(const Rect.fromLTRB(50.0, 60.0, 110.0, 190.0), textDirection: TextDirection.ltr),
       // inner path is a rect from 50.0,70.0 to 90.0,190.0
       isPathThat(
         includes: <Offset>[
@@ -467,7 +504,7 @@ void main() {
     );
     expect(
       const BorderDirectional(start: magenta3) + const BorderDirectional(start: yellow2),
-      isNot(isInstanceOf<BorderDirectional>()), // see shape_border_test.dart for better tests of this case
+      isNot(isA<BorderDirectional>()), // see shape_border_test.dart for better tests of this case
     );
     const BorderDirectional b3 = BorderDirectional(top: magenta3);
     const BorderDirectional b6 = BorderDirectional(top: magenta6);
@@ -590,7 +627,7 @@ void main() {
     expect(
       (Canvas canvas) {
         const BorderDirectional(end: BorderSide(width: 10.0, color: Color(0xFF00FF00)))
-          .paint(canvas, Rect.fromLTRB(10.0, 20.0, 30.0, 40.0), textDirection: TextDirection.rtl);
+          .paint(canvas, const Rect.fromLTRB(10.0, 20.0, 30.0, 40.0), textDirection: TextDirection.rtl);
       },
       paints
         ..path(
@@ -602,7 +639,7 @@ void main() {
     expect(
       (Canvas canvas) {
         const BorderDirectional(end: BorderSide(width: 10.0, color: Color(0xFF00FF00)))
-          .paint(canvas, Rect.fromLTRB(10.0, 20.0, 30.0, 40.0), textDirection: TextDirection.ltr);
+          .paint(canvas, const Rect.fromLTRB(10.0, 20.0, 30.0, 40.0), textDirection: TextDirection.ltr);
       },
       paints
         ..path(
@@ -614,7 +651,7 @@ void main() {
     expect(
       (Canvas canvas) {
         const BorderDirectional(end: BorderSide(width: 10.0, color: Color(0xFF00FF00)))
-          .paint(canvas, Rect.fromLTRB(10.0, 20.0, 30.0, 40.0));
+          .paint(canvas, const Rect.fromLTRB(10.0, 20.0, 30.0, 40.0));
       },
       paintsAssertion, // no TextDirection
     );

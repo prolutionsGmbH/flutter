@@ -1,4 +1,4 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,16 +8,12 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:path/path.dart' as path;
 import 'package:logging/logging.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 import 'running_processes.dart';
 import 'utils.dart';
-
-/// Maximum amount of time a single task is allowed to take to run.
-///
-/// If exceeded the task is considered to have failed.
-const Duration _kDefaultTaskTimeout = Duration(minutes: 15);
 
 /// Represents a unit of work performed in the CI environment that can
 /// succeed, fail and be retried independently of others.
@@ -30,7 +26,7 @@ bool _isTaskRegistered = false;
 /// The task does not run immediately but waits for the request via the
 /// VM service protocol to run it.
 ///
-/// It is ok for a [task] to perform many things. However, only one task can be
+/// It is OK for a [task] to perform many things. However, only one task can be
 /// registered per Dart VM.
 Future<TaskResult> task(TaskFunction task) {
   if (_isTaskRegistered)
@@ -55,7 +51,7 @@ class _TaskRunner {
         (String method, Map<String, String> parameters) async {
       final Duration taskTimeout = parameters.containsKey('timeoutInMinutes')
         ? Duration(minutes: int.parse(parameters['timeoutInMinutes']))
-        : _kDefaultTaskTimeout;
+        : null;
       final TaskResult result = await run(taskTimeout);
       return ServiceExtensionResponse.result(json.encode(result.toJson()));
     });
@@ -82,7 +78,7 @@ class _TaskRunner {
   Future<TaskResult> run(Duration taskTimeout) async {
     try {
       _taskStarted = true;
-      print('Running task.');
+      print('Running task with a timeout of $taskTimeout.');
       final String exe = Platform.isWindows ? '.exe' : '';
       section('Checking running Dart$exe processes');
       final Set<RunningProcessInfo> beforeRunningDartInstances = await getRunningProcesses(
@@ -90,7 +86,23 @@ class _TaskRunner {
       ).toSet();
       beforeRunningDartInstances.forEach(print);
 
-      TaskResult result = await _performTask().timeout(taskTimeout);
+      print('enabling configs for macOS, Linux, Windows, and Web...');
+      final int configResult = await exec(path.join(flutterDirectory.path, 'bin', 'flutter'), <String>[
+        'config',
+        '--enable-macos-desktop',
+        '--enable-windows-desktop',
+        '--enable-linux-desktop',
+        '--enable-web'
+      ]);
+      if (configResult != 0) {
+        print('Failed to enable configuration, tasks may not run.');
+      }
+
+      Future<TaskResult> futureResult = _performTask();
+      if (taskTimeout != null)
+        futureResult = futureResult.timeout(taskTimeout);
+
+      TaskResult result = await futureResult;
 
       section('Checking running Dart$exe processes after task...');
       final List<RunningProcessInfo> afterRunningDartInstances = await getRunningProcesses(
@@ -99,7 +111,6 @@ class _TaskRunner {
       for (final RunningProcessInfo info in afterRunningDartInstances) {
         if (!beforeRunningDartInstances.contains(info)) {
           print('$info was leaked by this test.');
-          // TODO(dnfield): remove this special casing after https://github.com/flutter/flutter/issues/29141 is resolved.
           if (result is TaskResultCheckProcesses) {
             result = TaskResult.failure('This test leaked dart processes');
           }
@@ -114,8 +125,10 @@ class _TaskRunner {
 
       _completer.complete(result);
       return result;
-    } on TimeoutException catch (_) {
+    } on TimeoutException catch (err, stackTrace) {
       print('Task timed out in framework.dart after $taskTimeout.');
+      print(err);
+      print(stackTrace);
       return TaskResult.failure('Task timed out after $taskTimeout');
     } finally {
       print('Cleaning up after task...');
@@ -145,7 +158,7 @@ class _TaskRunner {
     });
   }
 
-  /// Disables the keep-alive port, allowing the VM to exit.
+  /// Disables the keepalive port, allowing the VM to exit.
   void _closeKeepAlivePort() {
     _startTaskTimeout?.cancel();
     _keepAlivePort?.close();
@@ -181,12 +194,12 @@ class TaskResult {
         message = 'success' {
     const JsonEncoder prettyJson = JsonEncoder.withIndent('  ');
     if (benchmarkScoreKeys != null) {
-      for (String key in benchmarkScoreKeys) {
+      for (final String key in benchmarkScoreKeys) {
         if (!data.containsKey(key)) {
-          throw 'Invalid Golem score key "$key". It does not exist in task '
+          throw 'Invalid benchmark score key "$key". It does not exist in task '
               'result data ${prettyJson.convert(data)}';
         } else if (data[key] is! num) {
-          throw 'Invalid Golem score for key "$key". It is expected to be a num '
+          throw 'Invalid benchmark score for key "$key". It is expected to be a num '
               'but was ${data[key].runtimeType}: ${prettyJson.convert(data[key])}';
         }
       }
@@ -196,8 +209,10 @@ class TaskResult {
   /// Constructs a successful result using JSON data stored in a file.
   factory TaskResult.successFromFile(File file,
       {List<String> benchmarkScoreKeys}) {
-    return TaskResult.success(json.decode(file.readAsStringSync()),
-        benchmarkScoreKeys: benchmarkScoreKeys);
+    return TaskResult.success(
+      json.decode(file.readAsStringSync()) as Map<String, dynamic>,
+      benchmarkScoreKeys: benchmarkScoreKeys,
+    );
   }
 
   /// Constructs an unsuccessful result.
@@ -212,17 +227,9 @@ class TaskResult {
   /// Task-specific JSON data
   final Map<String, dynamic> data;
 
-  /// Keys in [data] that store scores that will be submitted to Golem.
+  /// Keys in [data] that store scores that will be submitted to Cocoon.
   ///
-  /// Each key is also part of a benchmark's name tracked by Golem.
-  /// A benchmark name is computed by combining [Task.name] with a key
-  /// separated by a dot. For example, if a task's name is
-  /// `"complex_layout__start_up"` and score key is
-  /// `"engineEnterTimestampMicros"`, the score will be submitted to Golem under
-  /// `"complex_layout__start_up.engineEnterTimestampMicros"`.
-  ///
-  /// This convention reduces the amount of configuration that needs to be done
-  /// to submit benchmark scores to Golem.
+  /// Each key is also part of a benchmark's name tracked by Cocoon.
   final List<String> benchmarkScoreKeys;
 
   /// Whether the task failed.
@@ -259,6 +266,9 @@ class TaskResult {
 
     return json;
   }
+
+  @override
+  String toString() => message;
 }
 
 class TaskResultCheckProcesses extends TaskResult {

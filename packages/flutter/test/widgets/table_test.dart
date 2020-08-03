@@ -1,10 +1,13 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 class TestStatefulWidget extends StatefulWidget {
   const TestStatefulWidget({ Key key }) : super(key: key);
@@ -16,6 +19,24 @@ class TestStatefulWidget extends StatefulWidget {
 class TestStatefulWidgetState extends State<TestStatefulWidget> {
   @override
   Widget build(BuildContext context) => Container();
+}
+
+class TestChildWidget extends StatefulWidget {
+  const TestChildWidget({ Key key }) : super(key: key);
+
+  @override
+  TestChildState createState() => TestChildState();
+}
+
+class TestChildState extends State<TestChildWidget> {
+  bool toggle = true;
+
+  void toggleMe() {
+    setState(() { toggle = !toggle; });
+  }
+
+  @override
+  Widget build(BuildContext context) => toggle ? const SizedBox() : const Text('CRASHHH');
 }
 
 void main() {
@@ -65,6 +86,41 @@ void main() {
     await run(TextDirection.ltr);
     await tester.pumpWidget(Container());
     await run(TextDirection.rtl);
+  });
+
+  testWidgets('Table widget can be detached and re-attached', (WidgetTester tester) async {
+    final Widget table = Table(
+      key: GlobalKey(),
+      children: const <TableRow>[
+        TableRow(
+          decoration: BoxDecoration(
+              color: Colors.yellow
+          ),
+          children: <Widget>[Placeholder()],
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: table,
+        ),
+      ),
+    );
+    // Move table to a different location to simulate detaching and re-attaching effect.
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Center(
+            child: table
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Table widget - column offset (LTR)', (WidgetTester tester) async {
@@ -320,6 +376,36 @@ void main() {
       ),
     );
     // If the above bug is present this test will never terminate.
+  });
+
+  testWidgets('Calculating flex columns with small width deficit', (WidgetTester tester) async {
+    const SizedBox cell = SizedBox(width: 1, height: 1);
+    // If the error is present, pumpWidget() will fail due to an unsatisfied
+    // assertion during the layout phase.
+    await tester.pumpWidget(
+      ConstrainedBox(
+        constraints: BoxConstraints.tight(const Size(600, 800)),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Table(
+            columnWidths: const <int, TableColumnWidth>{
+              0: FlexColumnWidth(1.0),
+              1: FlexColumnWidth(0.123),
+              2: FlexColumnWidth(0.123),
+              3: FlexColumnWidth(0.123),
+              4: FlexColumnWidth(0.123),
+              5: FlexColumnWidth(0.123),
+              6: FlexColumnWidth(0.123),
+            },
+            children: <TableRow>[
+              TableRow(children: List<Widget>.filled(7, cell)),
+              TableRow(children: List<Widget>.filled(7, cell)),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), null);
   });
 
   testWidgets('Table widget - repump test', (WidgetTester tester) async {
@@ -791,7 +877,7 @@ void main() {
       ),
     );
     await tester.pumpWidget(table);
-    final RenderObjectElement element = key0.currentContext;
+    final RenderObjectElement element = key0.currentContext as RenderObjectElement;
     expect(element, hasAGoodToStringDeep);
     expect(
       element.toStringDeep(minLevel: DiagnosticLevel.info),
@@ -817,6 +903,81 @@ void main() {
         ' └RichText(softWrap: wrapping at box width, maxLines: unlimited, text: "III", dependencies: [Directionality], renderObject: RenderParagraph#00000 relayoutBoundary=up1)\n'
       ),
     );
+  });
+
+  // Regression test for https://github.com/flutter/flutter/issues/31473.
+  testWidgets(
+    'Does not crash if a child RenderObject is replaced by another RenderObject of a different type',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Table(children: const <TableRow>[TableRow(children: <Widget>[TestChildWidget()])]),
+        ),
+      );
+      expect(find.text('CRASHHH'), findsNothing);
+
+      final TestChildState state = tester.state(find.byType(TestChildWidget));
+      state.toggleMe();
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Table(children: const <TableRow>[TableRow(children: <Widget>[TestChildWidget()])]),
+        ),
+      );
+
+      // Should not crash.
+      expect(find.text('CRASHHH'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Table widget - Default textBaseline is set to TableBaseline.alphabetic',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Table(
+            defaultVerticalAlignment: TableCellVerticalAlignment.baseline,
+            children: const <TableRow>[
+              TableRow(
+                children: <Widget>[
+                  Text('Some Text'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final RenderTable table = tester.renderObject(find.byType(Table));
+      expect(table.textBaseline, TextBaseline.alphabetic);
+    },
+  );
+
+  testWidgets(
+    'Table widget requires all TableRows to have non-null children',
+    (WidgetTester tester) async {
+      FlutterError error;
+      try {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Table(
+              children: const <TableRow>[
+                TableRow(children: <Widget>[Text('Some Text')]),
+                TableRow(),
+              ],
+            ),
+          ),
+        );
+      } on FlutterError catch (e) {
+        error = e;
+      } finally {
+        expect(error, isNotNull);
+        expect(error.toStringDeep(), contains('The children property of TableRow must not be null.'));
+      }
   });
 
   // TODO(ianh): Test handling of TableCell object

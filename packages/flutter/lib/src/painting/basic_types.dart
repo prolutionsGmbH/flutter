@@ -1,6 +1,8 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:ui' show TextDirection;
 
@@ -41,9 +43,10 @@ export 'dart:ui' show
   TextPosition,
   TileMode,
   VertexMode,
-  VoidCallback,
   hashValues,
   hashList;
+
+export 'package:flutter/foundation.dart' show VoidCallback;
 
 // Intentionally not exported:
 //  - Image, instantiateImageCodec, decodeImageFromList:
@@ -253,7 +256,7 @@ AxisDirection flipAxisDirection(AxisDirection axisDirection) {
   return null;
 }
 
-/// Returns whether travelling along the given axis direction visits coordinates
+/// Returns whether traveling along the given axis direction visits coordinates
 /// along that axis in numerically decreasing order.
 ///
 /// Specifically, returns true for [AxisDirection.up] and [AxisDirection.left]

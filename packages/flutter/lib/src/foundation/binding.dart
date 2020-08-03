@@ -1,4 +1,4 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -6,8 +6,8 @@ import 'dart:async';
 import 'dart:convert' show json;
 import 'dart:developer' as developer;
 import 'dart:io' show exit;
-// Before adding any more dart:ui imports, pleaes read the README.
-import 'dart:ui' as ui show saveCompilationTrace, Window, window;
+import 'dart:ui' as ui show  Window, window, Brightness;
+// Before adding any more dart:ui imports, please read the README.
 
 import 'package:meta/meta.dart';
 
@@ -15,6 +15,7 @@ import 'assertions.dart';
 import 'basic_types.dart';
 import 'constants.dart';
 import 'debug.dart';
+import 'object.dart';
 import 'platform.dart';
 import 'print.dart';
 
@@ -98,7 +99,10 @@ abstract class BindingBase {
   @mustCallSuper
   void initInstances() {
     assert(!_debugInitialized);
-    assert(() { _debugInitialized = true; return true; }());
+    assert(() {
+      _debugInitialized = true;
+      return true;
+    }());
   }
 
   /// Called when the binding is initialized, to register service
@@ -132,18 +136,10 @@ abstract class BindingBase {
       return true;
     }());
 
-    if (!kReleaseMode) {
+    if (!kReleaseMode && !kIsWeb) {
       registerSignalServiceExtension(
         name: 'exit',
         callback: _exitApplication,
-      );
-      registerServiceExtension(
-        name: 'saveCompilationTrace',
-        callback: (Map<String, String> parameters) async {
-          return <String, dynamic>{
-            'value': ui.saveCompilationTrace(),
-          };
-        },
       );
     }
 
@@ -157,11 +153,20 @@ abstract class BindingBase {
               case 'android':
                 debugDefaultTargetPlatformOverride = TargetPlatform.android;
                 break;
+              case 'fuchsia':
+                debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
+                break;
               case 'iOS':
                 debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
                 break;
-              case 'fuchsia':
-                debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
+              case 'linux':
+                debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+                break;
+              case 'macOS':
+                debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+                break;
+              case 'windows':
+                debugDefaultTargetPlatformOverride = TargetPlatform.windows;
                 break;
               case 'default':
               default:
@@ -180,9 +185,39 @@ abstract class BindingBase {
           };
         },
       );
+
+      const String brightnessOverrideExtensionName = 'brightnessOverride';
+      registerServiceExtension(
+        name: brightnessOverrideExtensionName,
+        callback: (Map<String, String> parameters) async {
+          if (parameters.containsKey('value')) {
+            switch (parameters['value']) {
+              case 'Brightness.light':
+                debugBrightnessOverride = ui.Brightness.light;
+                break;
+              case 'Brightness.dark':
+                debugBrightnessOverride = ui.Brightness.dark;
+                break;
+              default:
+                debugBrightnessOverride = null;
+            }
+            _postExtensionStateChangedEvent(
+              brightnessOverrideExtensionName,
+              (debugBrightnessOverride ?? window.platformBrightness).toString(),
+            );
+            await reassembleApplication();
+          }
+          return <String, dynamic>{
+            'value': (debugBrightnessOverride ?? window.platformBrightness).toString(),
+          };
+        },
+      );
       return true;
     }());
-    assert(() { _debugServiceExtensionsRegistered = true; return true; }());
+    assert(() {
+      _debugServiceExtensionsRegistered = true;
+      return true;
+    }());
   }
 
   /// Whether [lockEvents] is currently locking events.
@@ -279,8 +314,8 @@ abstract class BindingBase {
   /// {@macro flutter.foundation.bindingBase.registerServiceExtension}
   @protected
   void registerSignalServiceExtension({
-    @required String name,
-    @required AsyncCallback callback,
+    required String name,
+    required AsyncCallback callback,
   }) {
     assert(name != null);
     assert(callback != null);
@@ -309,9 +344,9 @@ abstract class BindingBase {
   /// {@macro flutter.foundation.bindingBase.registerServiceExtension}
   @protected
   void registerBoolServiceExtension({
-    @required String name,
-    @required AsyncValueGetter<bool> getter,
-    @required AsyncValueSetter<bool> setter,
+    required String name,
+    required AsyncValueGetter<bool> getter,
+    required AsyncValueSetter<bool> setter,
   }) {
     assert(name != null);
     assert(getter != null);
@@ -343,9 +378,9 @@ abstract class BindingBase {
   /// {@macro flutter.foundation.bindingBase.registerServiceExtension}
   @protected
   void registerNumericServiceExtension({
-    @required String name,
-    @required AsyncValueGetter<double> getter,
-    @required AsyncValueSetter<double> setter,
+    required String name,
+    required AsyncValueGetter<double> getter,
+    required AsyncValueSetter<double> setter,
   }) {
     assert(name != null);
     assert(getter != null);
@@ -354,7 +389,7 @@ abstract class BindingBase {
       name: name,
       callback: (Map<String, String> parameters) async {
         if (parameters.containsKey(name)) {
-          await setter(double.parse(parameters[name]));
+          await setter(double.parse(parameters[name]!));
           _postExtensionStateChangedEvent(name, (await getter()).toString());
         }
         return <String, dynamic>{name: (await getter()).toString()};
@@ -405,9 +440,9 @@ abstract class BindingBase {
   /// {@macro flutter.foundation.bindingBase.registerServiceExtension}
   @protected
   void registerStringServiceExtension({
-    @required String name,
-    @required AsyncValueGetter<String> getter,
-    @required AsyncValueSetter<String> setter,
+    required String name,
+    required AsyncValueGetter<String> getter,
+    required AsyncValueSetter<String> setter,
   }) {
     assert(name != null);
     assert(getter != null);
@@ -416,7 +451,7 @@ abstract class BindingBase {
       name: name,
       callback: (Map<String, String> parameters) async {
         if (parameters.containsKey('value')) {
-          await setter(parameters['value']);
+          await setter(parameters['value']!);
           _postExtensionStateChangedEvent(name, await getter());
         }
         return <String, dynamic>{'value': await getter()};
@@ -444,7 +479,7 @@ abstract class BindingBase {
   /// not wrapped in a guard that allows the tree shaker to remove it (see
   /// sample code below).
   ///
-  /// {@tool sample}
+  /// {@tool snippet}
   /// The following code registers a service extension that is only included in
   /// debug builds.
   ///
@@ -458,7 +493,7 @@ abstract class BindingBase {
   /// ```
   /// {@end-tool}
   ///
-  /// {@tool sample}
+  /// {@tool snippet}
   /// A service extension registered with the following code snippet is
   /// available in debug and profile mode.
   ///
@@ -477,8 +512,8 @@ abstract class BindingBase {
   /// {@endtemplate}
   @protected
   void registerServiceExtension({
-    @required String name,
-    @required ServiceExtensionCallback callback,
+    required String name,
+    required ServiceExtensionCallback callback,
   }) {
     assert(name != null);
     assert(callback != null);
@@ -506,8 +541,8 @@ abstract class BindingBase {
       });
 
       dynamic caughtException;
-      StackTrace caughtStack;
-      Map<String, dynamic> result;
+      StackTrace? caughtStack;
+      late Map<String, dynamic> result;
       try {
         result = await callback(parameters);
       } catch (exception, stack) {
@@ -522,7 +557,7 @@ abstract class BindingBase {
         FlutterError.reportError(FlutterErrorDetails(
           exception: caughtException,
           stack: caughtStack,
-          context: 'during a service extension callback for "$method"',
+          context: ErrorDescription('during a service extension callback for "$method"'),
         ));
         return developer.ServiceExtensionResponse.error(
           developer.ServiceExtensionResponse.extensionError,
@@ -537,7 +572,7 @@ abstract class BindingBase {
   }
 
   @override
-  String toString() => '<$runtimeType>';
+  String toString() => '<${objectRuntimeType(this, 'BindingBase')}>';
 }
 
 /// Terminate the Flutter application.

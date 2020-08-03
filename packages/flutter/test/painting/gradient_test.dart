@@ -1,8 +1,12 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
+
 import 'dart:math' as math;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/painting.dart';
 
@@ -196,7 +200,7 @@ void main() {
         return const LinearGradient(
           begin: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
       },
       throwsAssertionError,
     );
@@ -205,7 +209,7 @@ void main() {
         return const LinearGradient(
           begin: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.rtl);
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.rtl);
       },
       returnsNormally,
     );
@@ -214,7 +218,7 @@ void main() {
         return const LinearGradient(
           begin: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.ltr);
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.ltr);
       },
       returnsNormally,
     );
@@ -223,7 +227,7 @@ void main() {
         return const LinearGradient(
           begin: Alignment.topLeft,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
       },
       returnsNormally,
     );
@@ -235,7 +239,7 @@ void main() {
         return const RadialGradient(
           center: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
       },
       throwsAssertionError,
     );
@@ -245,7 +249,7 @@ void main() {
         return const RadialGradient(
           center: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.rtl);
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.rtl);
       },
       returnsNormally,
     );
@@ -254,7 +258,7 @@ void main() {
         return const RadialGradient(
           center: AlignmentDirectional.topStart,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.ltr);
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0), textDirection: TextDirection.ltr);
       },
       returnsNormally,
     );
@@ -263,7 +267,7 @@ void main() {
         return const RadialGradient(
           center: Alignment.topLeft,
           colors: <Color>[ Color(0xFFFFFFFF), Color(0xFFFFFFFF) ],
-        ).createShader(Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
+        ).createShader(const Rect.fromLTWH(0.0, 0.0, 100.0, 100.0));
       },
       returnsNormally,
     );
@@ -759,10 +763,88 @@ void main() {
       ],
       stops: <double>[0.0, 1.0],
     );
-    final Rect rect = Rect.fromLTWH(1.0, 2.0, 3.0, 4.0);
+    const Rect rect = Rect.fromLTWH(1.0, 2.0, 3.0, 4.0);
     expect(test1a.createShader(rect), isNotNull);
     expect(test1b.createShader(rect), isNotNull);
     expect(() { test2a.createShader(rect); }, throwsArgumentError);
     expect(() { test2b.createShader(rect); }, throwsArgumentError);
   });
+
+  group('Transforms', () {
+    const List<Color> colors = <Color>[Color(0xFFFFFFFF), Color(0xFF000088)];
+    const Rect rect = Rect.fromLTWH(0.0, 0.0, 300.0, 400.0);
+    const List<Gradient> gradients45 = <Gradient>[
+      LinearGradient(colors: colors, transform: GradientRotation(math.pi/4)),
+      // A radial gradient won't be interesting to rotate unless the center is changed.
+      RadialGradient(colors: colors, center: Alignment.topCenter, transform: GradientRotation(math.pi/4)),
+      SweepGradient(colors: colors, transform: GradientRotation(math.pi/4)),
+    ];
+    const List<Gradient> gradients90 = <Gradient>[
+      LinearGradient(colors: colors, transform: GradientRotation(math.pi/2)),
+      // A radial gradient won't be interesting to rotate unless the center is changed.
+      RadialGradient(colors: colors, center: Alignment.topCenter, transform: GradientRotation(math.pi/2)),
+      SweepGradient(colors: colors, transform: GradientRotation(math.pi/2)),
+    ];
+
+    const Map<Type, String> gradientSnakeCase = <Type, String> {
+      LinearGradient: 'linear_gradient',
+      RadialGradient: 'radial_gradient',
+      SweepGradient: 'sweep_gradient',
+    };
+
+    Future<void> runTest(WidgetTester tester, Gradient gradient, double degrees) async {
+      final String goldenName = '${gradientSnakeCase[gradient.runtimeType]}_$degrees.png';
+      final Shader shader = gradient.createShader(
+        rect,
+      );
+      final Key painterKey = UniqueKey();
+      await tester.pumpWidget(Center(
+        child: SizedBox.fromSize(
+          size: rect.size,
+          child: RepaintBoundary(
+            key: painterKey,
+            child: CustomPaint(
+              painter: GradientPainter(shader, rect)
+            ),
+          ),
+        ),
+      ));
+      await expectLater(
+        find.byKey(painterKey),
+        matchesGoldenFile(goldenName),
+      );
+    }
+
+    group('Gradients - 45 degrees', () {
+      for (final Gradient gradient in gradients45) {
+        testWidgets('$gradient', (WidgetTester tester) async {
+          await runTest(tester, gradient, 45);
+        }, skip: isBrowser); // https://github.com/flutter/flutter/issues/41389
+      }
+    });
+
+    group('Gradients - 90 degrees', () {
+      for (final Gradient gradient in gradients90) {
+        testWidgets('$gradient', (WidgetTester tester) async {
+          await runTest(tester, gradient, 90);
+        }, skip: isBrowser); // https://github.com/flutter/flutter/issues/41389
+      }
+    });
+  });
+}
+
+class GradientPainter extends CustomPainter {
+  const GradientPainter(this.shader, this.rect);
+
+  final Shader shader;
+  final Rect rect;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(rect, Paint()..shader = shader);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+
 }

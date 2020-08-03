@@ -1,6 +1,8 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
+// @dart = 2.8
 
 import 'dart:ui';
 
@@ -55,7 +57,7 @@ void _tests() {
                     expandedHeight: appBarExpandedHeight,
                     title: Text('Semantics Test with Slivers'),
                   ),
-                   SliverList(
+                  SliverList(
                     delegate: SliverChildListDelegate(listChildren),
                   ),
                 ],
@@ -78,26 +80,26 @@ void _tests() {
                 id: 2,
                 children: <TestSemantics>[
                   TestSemantics(
+                    id: 7,
+                    children: <TestSemantics>[
+                      TestSemantics(
+                        id: 8,
+                        flags: <SemanticsFlag>[
+                          SemanticsFlag.namesRoute,
+                          SemanticsFlag.isHeader,
+                        ],
+                        label: 'Semantics Test with Slivers',
+                        textDirection: TextDirection.ltr,
+                      ),
+                    ],
+                  ),
+                  TestSemantics(
                     id: 9,
                     flags: <SemanticsFlag>[
                       SemanticsFlag.hasImplicitScrolling,
                     ],
                     actions: <SemanticsAction>[SemanticsAction.scrollUp],
                     children: <TestSemantics>[
-                      TestSemantics(
-                        id: 7,
-                        children: <TestSemantics>[
-                          TestSemantics(
-                            id: 8,
-                            flags: <SemanticsFlag>[
-                              SemanticsFlag.namesRoute,
-                              SemanticsFlag.isHeader,
-                            ],
-                            label: 'Semantics Test with Slivers',
-                            textDirection: TextDirection.ltr,
-                          ),
-                        ],
-                      ),
                       TestSemantics(
                         id: 3,
                         label: 'Item 0',
@@ -168,6 +170,7 @@ void _tests() {
                       SemanticsAction.scrollUp,
                       SemanticsAction.scrollDown,
                     ],
+                    flags: <SemanticsFlag>[SemanticsFlag.hasImplicitScrolling],
                     children: <TestSemantics>[
                       TestSemantics(
                         id: 3,
@@ -224,6 +227,20 @@ void _tests() {
                 id: 2,
                 children: <TestSemantics>[
                   TestSemantics(
+                    id: 7,
+                    children: <TestSemantics>[
+                      TestSemantics(
+                        id: 8,
+                        flags: <SemanticsFlag>[
+                          SemanticsFlag.namesRoute,
+                          SemanticsFlag.isHeader,
+                        ],
+                        label: 'Semantics Test with Slivers',
+                        textDirection: TextDirection.ltr,
+                      ),
+                    ],
+                  ),
+                  TestSemantics(
                     id: 9,
                     flags: <SemanticsFlag>[
                       SemanticsFlag.hasImplicitScrolling,
@@ -233,20 +250,6 @@ void _tests() {
                       SemanticsAction.scrollDown,
                     ],
                     children: <TestSemantics>[
-                      TestSemantics(
-                        id: 7,
-                        children: <TestSemantics>[
-                          TestSemantics(
-                            id: 8,
-                            flags: <SemanticsFlag>[
-                              SemanticsFlag.namesRoute,
-                              SemanticsFlag.isHeader,
-                            ],
-                            label: 'Semantics Test with Slivers',
-                            textDirection: TextDirection.ltr,
-                          ),
-                        ],
-                      ),
                       TestSemantics(
                         id: 3,
                         label: 'Item 0',
@@ -521,6 +524,7 @@ void _tests() {
                       SemanticsAction.scrollUp,
                       SemanticsAction.scrollDown,
                     ],
+                    flags: <SemanticsFlag>[SemanticsFlag.hasImplicitScrolling],
                     children: <TestSemantics>[
                       TestSemantics(
                         flags: <SemanticsFlag>[SemanticsFlag.isHidden],
@@ -597,7 +601,8 @@ void _tests() {
                   expandedHeight: 100.0,
                   title: Text('AppBar'),
                 ),
-              ]..addAll(slivers),
+                ...slivers,
+              ],
             ),
           ),
         ),
@@ -630,6 +635,7 @@ void _tests() {
                       SemanticsAction.scrollUp,
                       SemanticsAction.scrollDown,
                     ],
+                    flags: <SemanticsFlag>[SemanticsFlag.hasImplicitScrolling],
                     children: <TestSemantics>[
                       TestSemantics(
                         flags: <SemanticsFlag>[SemanticsFlag.isHidden],
@@ -821,7 +827,8 @@ void _tests() {
                   expandedHeight: 100.0,
                   title: Text('AppBar'),
                 ),
-              ]..addAll(slivers),
+                ...slivers,
+              ],
             ),
           ),
         ),
@@ -994,6 +1001,7 @@ void _tests() {
                       SemanticsAction.scrollUp,
                       SemanticsAction.scrollDown,
                     ],
+                    flags: <SemanticsFlag>[SemanticsFlag.hasImplicitScrolling],
                     children: <TestSemantics>[
                       TestSemantics(
                         flags: <SemanticsFlag>[SemanticsFlag.isHidden],
